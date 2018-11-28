@@ -1,8 +1,5 @@
 """
-Contains classes and methods for createing an object that represents a model.
-
-@author: Weverton Marques da Silva
-@date: November 26, 2018
+Classes and methods for a BEM potential problem.
 """
 
 import json
@@ -11,34 +8,41 @@ import plotly
 import plotly.graph_objs as go
 
 
-class Model:
+class Model(object):
     """
+    Model for a BEM potential problem.
+
     A class that stores all the information about the model:
-        - Nodes
-        - Elements
-        - Gauss's points
-        - Prescriptions (potentials and flows)
-        - Internal points
+      - Nodes
+      - Elements
+      - Gauss's points
+      - Prescriptions (potentials and flows)
+      - Internal points
     """
+
+    name = ""
 
     class Node:
         """
+        Domain nodes.
+
         A class that stores all properties related to nodes, as coordinates,
         flows and potentials.
+
         """
 
         def __init__(self, coords):
             """
             Parameters
             ----------
-            coords : array[float]
-                 Node\'s coordinates(x,y)
+            coords : list[float]
+                 Node's coordinates
             """
             self.coords = np.array(coords)
             self.potentials = None
-            """Node\'s prescribed potentials"""
+            """Node's prescribed potentials"""
             self.flows = None
-            """Node\'s prescribed flows"""
+            """Node's prescribed flows"""
 
         def set_flow(self, flow):
             """Define the node's flow."""
@@ -49,16 +53,17 @@ class Model:
             self.potentials = potential
 
     class Element:
-        """
-        A class that stores element's connectivity and geometric properties.
+        """A class that stores element's connectivity and geometric properties.
         """
 
         def __init__(self, nodes, dps):
             """
             Parameters
             ----------
-                - nodes (Node): Element's initial and final nodes.
-                - dps (float): Distance of the singular points.
+            nodes : list[Node]
+                Element's initial and final nodes.
+            dps : float
+                Distance of the singular points.
             """
             self.nodes = nodes
             self.length = (
@@ -76,21 +81,23 @@ class Model:
             self.singular_points = (
                 nodes[1].coords + nodes[0].coords
             ) / 2 + self.eta * self.dps
+            """Element's centroid coordenates."""
             self.centroid = (self.nodes[0].coords + self.nodes[1].coords) / 2
+            """Lenght of element's projections over the axis."""
             self.projections = self.length * self.cos_dir / 2
 
     class InternalPoint:
-        """
-        A class for representing internal points.
-        """
+        """A class for representing internal points."""
 
         def __init__(self, coords):
+            """Constructor."""
             self.coords = np.array(coords)
             self.potentials = [None, None]
             self.flows = [None, None]
 
         def __str__(self):
-            return "({},{})\t{}\t{}\t{}".format(
+            """Representation of internal point as a string"""
+            return "(%.4g, %.4g)   %.2e   %.2e   %.2e" % (
                 self.coords[0],
                 self.coords[1],
                 self.potentials,
@@ -102,11 +109,11 @@ class Model:
         """
         Parameters
         ----------
-        nodes: Nodes
+        nodes: list[Node]
             Nodes of the model
-        elements: Elements
+        elements: list[Element]
             Elements of the model
-        internal_points: InternalPoint
+        internal_points: list[InternalPoint]
             Internal points of the model
         ngauss: int
             Number of Gauss' points of the model
@@ -115,12 +122,11 @@ class Model:
         self.elements = elements
         self.internal_points = internal_points
         self.ngauss = ngauss
+        # noinspection PyTupleAssignmentBalance
         self.omega, self.ksi = self.gauss(ngauss)
 
     def show(self):
-        """
-        Shows a representation of the model in an iteractive plot.
-        """
+        """Shows a representation of the model in an interactive plot."""
         # Elementos de contorno
         x = [self.elements[0].nodes[0].coords[0]]
         y = [self.elements[0].nodes[0].coords[1]]
@@ -176,7 +182,7 @@ class Model:
         )
         plotly.offline.plot(fig, filename="Model.html")
 
-    def gauss(self, ngauss):
+    def gauss(cls, ngauss):
         """
         Returns the weights (Omegas) and parametric coordinates (ksi) for
         numerical Gauss' integration.
@@ -188,10 +194,18 @@ class Model:
 
         Returns
         -------
-        array[float]:
-            Weight for Gauss' integration
-        array[float]:
-            Parametric coordinates for Gauss' integration
+        list[float]:
+            Weight for Gauss' integration.
+        list[float]:
+            Parametric coordinates for Gauss' integration.
+
+        Example
+        -------
+        >>> Model.gauss(1)
+        (array([2]), array([0]))
+
+        >>> Model.gauss(2)
+        (array([1, 1]), array([ 0.57735027, -0.57735027]))
         """
         if ngauss == 1:
             omega = np.array([2])
@@ -229,7 +243,7 @@ class Model:
         return omega, ksi
 
     def integrate(self, i, j, is_internal):
-        # pylint: disable=W0631
+        # pylint: disable=W0631,R0914,W605
         """
         Computes the influence of a element over a domain/internal point.
 
@@ -238,18 +252,17 @@ class Model:
         i : int
             element's ID
         j : int
-            element or node's ID
+            element's ID
         is_internal : boolean
-            whether integrataion is for a domain or internal point
+            whether integration is for a domain or internal point
 
         Returns
         -------
         float
-            integral of element i over element/node j (H matrix)
+            influence of element j over point i (:math:`H_{i,j}`)
         float
-            integral of element i over element/node j (G matrix)
+            influence of element j over point i (:math:`G_{i,j}`)
         """
-        # pylint: disable=R0914
         H, G, Di, Si = 0.0, 0.0, [0.0, 0.0], [0.0, 0.0]
         # Singular element
         if i == j and self.elements[i].dps == 0 and is_internal:
@@ -294,9 +307,7 @@ class Model:
         return H, G
 
     def solve_boundary(self):
-        """
-        Creates the matrixes H and G for the model.
-        """
+        """Creates the matrices H and G for the model."""
         H = np.zeros((len(self.elements), len(self.elements)))
         G = np.zeros((len(self.elements), len(self.elements)))
         for i in range(len(self.elements)):
@@ -348,9 +359,7 @@ class Model:
                 self.nodes[i].flows = X[i]
 
     def solve_domain(self):
-        """
-        Computes flow and potentials for the internal points.
-        """
+        """Computes flow and potentials for the internal points."""
         # pylint: disable=W0631
         Hi = np.zeros((len(self.internal_points), len(self.elements)))
         Gi = np.zeros((len(self.internal_points), len(self.elements)))
@@ -359,6 +368,7 @@ class Model:
         for i in range(len(self.internal_points)):
             for j in range(len(self.elements)):
                 # Calculo dos potenciais nos pontos internos
+                # noinspection PyTupleAssignmentBalance
                 Hi[i, j], Gi[i, j], Di[i, j], Si[i, j] = self.integrate(
                     i, j, True
                 )
@@ -371,14 +381,14 @@ class Model:
         for i in range(len(self.internal_points)):
             self.internal_points[i].potentials = Ui[i]
             self.internal_points[i].flows = Qi[i]
+        print("Coords      U          Q_x          Q_y")
         for ip in self.internal_points:
             print(ip)
 
-    @classmethod
     def load_json(cls, file_name):
         """
         Reads a json file and create a `Model` object that contains all model's
-        information.
+         information.
 
         Parameters
         ----------
@@ -414,4 +424,4 @@ if __name__ == "__main__":
     m = Model.load_json("data.json")
     m.solve_boundary()
     m.solve_domain()
-    m.show()
+    # m.show()
