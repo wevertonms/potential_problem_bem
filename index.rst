@@ -6,6 +6,7 @@
 Problema potencial (MEC)
 ========================
 
+Bounday Element Method implementation for potential problems.
 
 .. toctree::
    :maxdepth: 2

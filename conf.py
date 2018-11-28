@@ -40,8 +40,7 @@ html_theme_options = {
     # Note the "1" or "True" value above as the third argument to indicate
     # an arbitrary url.
     'navbar_links': [
-        ("Download", "../../model.py"),
-        ("Link", "http://example.com", True),
+        ("Get code on GitHub", "https://github.com/wevertonms/potential_problem_bem", True),
     ],
 
     # Render the next and previous page links in navbar. (Default: true)
@@ -68,7 +67,7 @@ html_theme_options = {
 
     # HTML navbar class (Default: "navbar") to attach to <div> element.
     # For black navbar, do "navbar navbar-inverse"
-    'navbar_class': "navbar",
+    'navbar_class': "navbar navbar-inverse",
 
     # Fix navigation bar to top of page?
     # Values: "true" (default) or "false"
@@ -89,7 +88,7 @@ html_theme_options = {
     # Currently, the supported themes are:
     # - Bootstrap 2: https://bootswatch.com/2
     # - Bootstrap 3: https://bootswatch.com/3
-    'bootswatch_theme': "darkly",
+    'bootswatch_theme': "cosmo",
 
     # Choose Bootstrap version.
     # Values: "3" (default) or "2" (in quotes)
